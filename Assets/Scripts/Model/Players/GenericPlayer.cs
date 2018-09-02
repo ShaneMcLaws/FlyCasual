@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using Ship;
 using ActionsList;
+using GameModes;
+using SubPhases;
 
 public enum Faction
 {
@@ -116,7 +118,42 @@ namespace Players
 
         public virtual bool IsNeedToShowManeuver(GenericShip ship) { return false; }
 
-        public virtual void OnTargetNotLegalForAttack() { }
+        public virtual void OnTargetNotLegalForAttack()
+        {
+            // TODO: Better explanations
+            if (!Rules.TargetIsLegalForShot.IsLegal())
+            {
+                //automatic error messages
+            }
+            else if (!Combat.ShotInfo.IsShotAvailable)
+            {
+                Messages.ShowErrorToHuman("Target is outside your firing arc");
+            }
+            else if (Combat.ShotInfo.Range > Combat.ChosenWeapon.MaxRange || Combat.ShotInfo.Range < Combat.ChosenWeapon.MinRange)
+            {
+                Messages.ShowErrorToHuman("Target is outside your firing range");
+            }
+
+            //TODO: except non-legal targets, bupmed for example, biggs?
+            Roster.HighlightShipsFiltered(FilterShipsToAttack);
+
+            UI.ShowSkipButton();
+            UI.HighlightNextButton();
+
+            if (Phases.CurrentSubPhase is ExtraAttackSubPhase)
+            {
+                (Phases.CurrentSubPhase as ExtraAttackSubPhase).RevertSubphase();
+            }
+            else
+            {
+                Phases.CurrentSubPhase.IsReadyForCommands = true;
+            }
+        }
+
+        private bool FilterShipsToAttack(GenericShip ship)
+        {
+            return ship.Owner.PlayerNo != Phases.CurrentSubPhase.RequiredPlayer;
+        }
 
         public virtual void ChangeManeuver(Action<string> callback, Func<string, bool> filter = null) { }
 
@@ -164,12 +201,12 @@ namespace Players
 
         public virtual void PressNext()
         {
-            UI.SendNextButtonCommand();
+            GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateNextButtonCommand());
         }
 
         public virtual void PressSkip()
         {
-            UI.SendSkipButtonCommand();
+            GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateSkipButtonCommand());
         }
 
         public virtual void SyncDiceResults()
@@ -219,14 +256,6 @@ namespace Players
         public virtual void InformAboutCrit()
         {
             InformCrit.ShowPanelVisible();
-        }
-
-        public virtual void ConfirmCrit()
-        {
-            GameController.SendCommand(
-                GameCommandTypes.ConfirmCrit,
-                Phases.CurrentSubPhase.GetType()
-            );
         }
 
         public virtual void DiceCheckConfirm()

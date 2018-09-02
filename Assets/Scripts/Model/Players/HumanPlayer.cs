@@ -3,8 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ActionsList;
+using GameCommands;
 using GameModes;
 using Ship;
+using SubPhases;
 using UnityEngine;
 
 namespace Players
@@ -38,7 +40,11 @@ namespace Players
             SubPhases.DecisionSubPhase subphase = (Phases.CurrentSubPhase as SubPhases.DecisionSubPhase);
             subphase.ShowDecisionWindowUI();
 
-            if (subphase.IsForced) GameMode.CurrentGameMode.TakeDecision(subphase.GetDecisions().First(), null);
+            if (subphase.IsForced)
+            {
+                GameCommand command = SubPhases.DecisionSubPhase.GenerateDecisionCommand(subphase.GetDecisions().First().Name);
+                GameMode.CurrentGameMode.ExecuteCommand(command);
+            }
         }
 
         public override void ConfirmDiceCheck()
@@ -56,39 +62,6 @@ namespace Players
             return true;
         }
 
-        public override void OnTargetNotLegalForAttack()
-        {
-            // TODO: Better explanations
-            if (!Rules.TargetIsLegalForShot.IsLegal())
-            {
-                //automatic error messages
-            }
-            else if (!Combat.ShotInfo.IsShotAvailable)
-            {
-                Messages.ShowErrorToHuman("Target is outside your firing arc");
-            }
-            else if (Combat.ShotInfo.Range > Combat.ChosenWeapon.MaxRange || Combat.ShotInfo.Range < Combat.ChosenWeapon.MinRange)
-            {
-                Messages.ShowErrorToHuman("Target is outside your firing range");
-            }
-
-            //TODO: except non-legal targets, bupmed for example, biggs?
-            Roster.HighlightShipsFiltered(FilterShipsToAttack);
-
-            UI.ShowSkipButton();
-            UI.HighlightNextButton();
-
-            if (Phases.CurrentSubPhase is SubPhases.ExtraAttackSubPhase)
-            {
-                (Phases.CurrentSubPhase as SubPhases.ExtraAttackSubPhase).RevertSubphase();
-            }
-        }
-
-        private bool FilterShipsToAttack(GenericShip ship)
-        {
-            return ship.Owner.PlayerNo != Phases.CurrentSubPhase.RequiredPlayer;
-        }
-
         public override void ChangeManeuver(Action<string> callback, Func<string, bool> filter = null)
         {
             DirectionsMenu.Show(callback, filter);
@@ -101,12 +74,12 @@ namespace Players
 
         public override void SelectShipForAbility()
         {
-            GameMode.CurrentGameMode.StartSyncSelectShipPreparation();
+            (Phases.CurrentSubPhase as SelectShipSubPhase).HighlightShipsToSelect();
         }
 
         public override void SelectObstacleForAbility()
         {
-            GameMode.CurrentGameMode.StartSyncSelectObstaclePreparation();
+            (Phases.CurrentSubPhase as SelectObstacleSubPhase).HighlightObstacleToSelect();
         }
 
         public override void RerollManagerIsPrepared()
