@@ -244,16 +244,17 @@ public static partial class Combat
     {
         AttackStep = CombatStep.Defence;
 
-        CallDefenceStartEvents();
         Selection.ActiveShip = Defender;
 
-        DefenceDiceRoll();
+        CallDefenceStartEvents(DefenceDiceRoll);
     }
 
-    public static void CallDefenceStartEvents()
+    public static void CallDefenceStartEvents(Action callback)
     {
         Attacker.CallDefenceStartAsAttacker();
         Defender.CallDefenceStartAsDefender();
+
+        Triggers.ResolveTriggers(TriggerTypes.OnDefenseStart, callback);
     }
 
     private static void DefenceDiceRoll()
@@ -317,17 +318,28 @@ public static partial class Combat
 
         DiceRollAttack.RemoveAllFailures();
 
-        if (DiceRollAttack.Successes > 0) {
-			AttackHit ();
-		} else {
-			if (Attacker.AttackIsAlwaysConsideredHit) {
-				Messages.ShowInfo("Attack is considered a Hit");
-				AttackHit ();
-			} else {
-				AfterShotIsPerformed ();
-			}
-		}
-	}
+        Combat.Defender.CallAfterNeutralizeResults(CheckAttackHit);
+    }
+
+    private static void CheckAttackHit()
+    {
+        if (DiceRollAttack.Successes > 0)
+        {
+            AttackHit();
+        }
+        else
+        {
+            if (Attacker.AttackIsAlwaysConsideredHit)
+            {
+                Messages.ShowInfo("Attack is considered a Hit");
+                AttackHit();
+            }
+            else
+            {
+                AfterShotIsPerformed();
+            }
+        }
+    }
 
     private static void AttackHit()
     {
