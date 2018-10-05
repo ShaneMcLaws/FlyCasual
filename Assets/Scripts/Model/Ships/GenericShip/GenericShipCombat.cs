@@ -154,7 +154,9 @@ namespace Ship
         public event EventHandlerInt AfterGotNumberOfPrimaryWeaponAttackDice;
         public event EventHandlerInt AfterGotNumberOfPrimaryWeaponDefenceDice;
         public event EventHandlerInt AfterGotNumberOfAttackDice;
+        public event EventHandlerInt AfterGotNumberOfAttackDiceCap;
         public event EventHandlerInt AfterGotNumberOfDefenceDice;
+        public static event EventHandlerInt AfterGotNumberOfDefenceDiceGlobal;
         public event EventHandlerInt AfterNumberOfDefenceDiceConfirmed;
 
         public event EventHandlerShip AfterAssignedDamageIsChanged;
@@ -462,6 +464,8 @@ namespace Ship
 
             if (AfterGotNumberOfAttackDice != null) AfterGotNumberOfAttackDice(ref result);
 
+            if (AfterGotNumberOfAttackDiceCap != null) AfterGotNumberOfAttackDiceCap(ref result);
+
             if (result < 0) result = 0;
             return result;
         }
@@ -476,6 +480,7 @@ namespace Ship
             int result = Agility;
 
             if (AfterGotNumberOfDefenceDice != null) AfterGotNumberOfDefenceDice(ref result);
+            if (AfterGotNumberOfDefenceDiceGlobal != null) AfterGotNumberOfDefenceDiceGlobal(ref result);
 
             if (Combat.ChosenWeapon.GetType() == typeof(PrimaryWeaponClass))
             {
